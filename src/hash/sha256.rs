@@ -412,7 +412,7 @@ mod tests {
 
     use crate::hash::sha256::{CircuitBuilderHashSha2, WitnessHashSha2};
     use crate::hash::{CircuitBuilderHash, WitnessHash};
-    use crate::hash::merkle_utils::{Hash256};
+    use crate::hash::merkle_utils::Hash256;
     const SHA256_BLOCK: usize = 512;
 
     #[test]

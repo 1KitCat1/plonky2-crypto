@@ -41,6 +41,7 @@ impl<T: Witness<F>, F: PrimeField64> WitnessHashKeccak<F> for T {
 }
 
 pub trait CircuitBuilderHashKeccak<F: RichField + Extendable<D>, const D: usize> {
+    fn keccak256_input_padding(&mut self, target: &HashInputTarget, padding_len: u64);
     fn hash_keccak256(&mut self, hash: &HashInputTarget) -> HashOutputTarget;
     fn _hash_keccak256_f1600(&mut self, state: &mut [[U32Target; 2]; 25]);
 }
@@ -76,6 +77,27 @@ pub const KECCAKF_RNDC: [[u32; 2]; 24] = [
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderHashKeccak<F, D>
     for CircuitBuilder<F, D>
 {
+    fn keccak256_input_padding(&mut self, target: &HashInputTarget, padding_len: u64) {
+        // keccak padding scheme: 0b[message]10..01
+        let limbs = &target.input.limbs;
+        let len = limbs.len();
+        let start = len - (padding_len as usize / 32);
+
+        // add bit 1 at the end of the input
+        let padding_start = self.constant_u32(0x80000000);
+        self.connect_u32(limbs[start], padding_start);
+
+        // fill 0 bits
+        let zero_u32 = self.zero_u32();
+        for &limb in limbs.iter().take(len - 1).skip(start + 1) {
+            self.connect_u32(limb, zero_u32);
+        }
+
+        // add bit 1 at the end of the block
+        let padding_end = self.constant_u32(0x1);
+        self.connect_u32(limbs[len - 1], padding_end);
+    }
+
     fn _hash_keccak256_f1600(&mut self, s: &mut [[U32Target; 2]; 25]) {
         let zero = self.zero_u32();
         let mut bc = [[zero; 2]; 5];
